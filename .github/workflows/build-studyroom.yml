@@ -1,0 +1,34 @@
+name: Build Studyroom IPA
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Extract source
+        run: unzip -q studyroom-source.zip -d ios
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Check study scheduling and timer logic
+        run: node ios/Tests/core.test.cjs
+      - name: Build iPhone app
+        working-directory: ios
+        run: bash 'Build IPA.command'
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Studyroom-iPhone-IPA
+          path: ios/dist/Studyroom-unsigned.ipa
+          if-no-files-found: error
+      - name: Publish downloadable IPA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          shasum -a 256 ios/dist/Studyroom-unsigned.ipa > ios/dist/Studyroom-unsigned.ipa.sha256
+          gh release create studyroom-1.0 ios/dist/Studyroom-unsigned.ipa ios/dist/Studyroom-unsigned.ipa.sha256 --title 'Studyroom 1.0 — unsigned iPhone app' --notes 'Original purple-and-black study app. Sign with your own installer. Offline notes, flashcards, quizzes, planning, focus timer, optional AI and Canvas connections. No credentials or personal data included.'
