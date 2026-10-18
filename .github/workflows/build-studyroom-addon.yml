@@ -1,0 +1,27 @@
+name: Build Studyroom native add-on
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  framework:
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Extract own add-on source
+        run: unzip -q studyroom-addon-source.zip -d addon
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Verify study scheduling and timer logic
+        run: node addon/Tests/core.test.cjs
+      - name: Build unsigned iPhone framework
+        run: bash addon/build-addon.sh
+      - uses: actions/upload-artifact@v7
+        with:
+          name: StudyroomTools-iPhone-framework
+          path: addon/dist/StudyroomTools-framework.zip
+          if-no-files-found: error
